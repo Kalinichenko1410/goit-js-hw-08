@@ -77,28 +77,59 @@ function createGalleryItem({ preview, original, description }) {
     </li>
   `;
 }
+let activeLightboxInstance = null; // Зберігаємо посилання на активний екземпляр basicLightbox
 
+// Функція обробки кліку на зображенні
 function onGalleryItemClick(event) {
   event.preventDefault();
 
   const target = event.target;
   if (target.classList.contains('gallery-image')) {
-    const instance = basicLightbox.create(`
-      <img src="${target.dataset.source}" alt="${target.alt}" />
-    `);
+    const originalImageUrl = target.dataset.source;
+    const altText = target.alt;
 
-    instance.show();
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        instance.close();
+    activeLightboxInstance = basicLightbox.create(`
+      <img src="${originalImageUrl}" alt="${altText}" />
+    `, {
+      onShow: (instance) => {
+        document.addEventListener('keydown', onCloseHandler);
+      },
+      onClose: (instance) => {
+        document.removeEventListener('keydown', onCloseHandler);
+        activeLightboxInstance = null; // Очищаємо посилання на закритий екземпляр basicLightbox
       }
     });
+
+    activeLightboxInstance.show();
   }
+}
+
+// Функція обробки клавіші Escape при закритті модального вікна
+function onCloseHandler(event) {
+  if (event.key === 'Escape' && activeLightboxInstance) {
+    activeLightboxInstance.close(); // Закриваємо активний екземпляр basicLightbox
+  }
+}
+
+// Функція створення елемента галереї
+function createGalleryItem({ preview, original, description }) {
+  return `
+    <li class="gallery-item">
+      <a class="gallery-link" href="${original}">
+        <img
+          class="gallery-image"
+          src="${preview}"
+          data-source="${original}"
+          alt="${description}"
+        />
+      </a>
+    </li>
+  `;
 }
 
 const galleryContainer = document.querySelector('.gallery');
 const galleryMarkup = images.map(createGalleryItem).join('');
 galleryContainer.insertAdjacentHTML('beforeend', galleryMarkup);
 
+// Додаємо один слухач подій для всієї галереї
 galleryContainer.addEventListener('click', onGalleryItemClick);
